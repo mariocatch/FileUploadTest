@@ -1,0 +1,201 @@
+﻿@model FileTest.Controllers.ViewModel
+
+@{
+    ViewBag.Title = "Index";
+}
+
+@using (Html.BeginForm("Index", "Home", FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+    @Html.LabelFor(m => m.Name)
+    @Html.EditorFor(m => m.Name)
+
+    @Html.LabelFor(m => m.Age)
+    @Html.EditorFor(m => m.Age)
+
+    <div id="foo-file-container"></div>
+
+    <input type="submit" value="Submit" />
+}
+
+@if (ViewData.ContainsKey("Success"))
+{
+    <span style="color: green;">Success</span>
+}
+else
+{
+    <span style="color: red;">Enter data</span>
+}
+
+<script src="https://code.jquery.com/jquery-2.2.1.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+    var Components;
+    (function (Components) {
+        var FooFileChooser = (function () {
+            function FooFileChooser(root) {
+                var _this = this;
+                if (this.supportsDragAndDrop()) {
+                    this.makeDragAndDrop(root);
+                }
+                else {
+                    this.makeFileBrowser(root);
+                }
+                this.inputElement.on("change", function () {
+                    var element = _this.inputElement[0];
+                    _this.onFileSelected(element.files);
+                    $(".file-chooser input[name='file']").val("");
+                });
+            }
+            FooFileChooser.prototype.makeDragAndDrop = function (root) {
+                var _this = this;
+                this.element = $("" +
+                    "<div class='file-chooser' style='display: inline-block; margin-bottom: 10px;'>" +
+                    "   <div style='position: relative;'>" +
+                    "       <div class='cancel-button' style='display: none;'></div>" +
+                    "   </div>" +
+                    "   <input type='file' name='file' style='display: none;' multiple/>" +
+                    "   <div class='file-chooser-text'>" +
+                    "       <span class='bold'><u>Choose file(s)</u></span> or drag them here." +
+                    "   </div>" +
+                    "   <div class='selected-file-text' style='display: none;'></div>" +
+                    "   <div class='validation-message' style='display: none;'>This field is required</div>" +
+                    "</div>");
+                this.element.on("drag dragstart dragend dragover dragenter dragleave drop", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                })
+                    .on("dragover dragenter", function () {
+                        _this.element.addClass("dragover");
+                    })
+                    .on("dragleave dragend drop", function () {
+                        _this.element.removeClass("dragover");
+                    })
+                    .on("drop", function (e) {
+                        var dragEvent = e.originalEvent;
+                        _this.onFileSelected(dragEvent.dataTransfer.files);
+                    });
+                this.element.find(".file-chooser-text .bold")
+                    .on("click", function () {
+                        _this.element.find("input").click();
+                    });
+                this.element.find(".cancel-button")
+                    .on("click", function () {
+                        _this.clearSelection();
+                    });
+                this.inputElement = this.element.find("input");
+                root.prepend(this.element);
+            };
+            FooFileChooser.prototype.makeFileBrowser = function (root) {
+                this
+                    .inputElement =
+                    $("<input class='ui-state-default uploadFileBrowser requiredField' type='file' name='file' multiple/>");
+                root.append(this.inputElement);
+            };
+            FooFileChooser.prototype.validate = function () {
+                var validation = this.element.find(".validation-message");
+                validation.fadeOut(150);
+                this.element.removeClass("validate-error");
+                if (typeof this.fileArray == "undefined" || this.fileArray.length <= 0) {
+                    this.element.addClass("validate-error");
+                    validation.fadeIn(150);
+                    $(".fileReqs").removeClass("validate-error");
+                    return false;
+                }
+                return true;
+            };
+            FooFileChooser.prototype.getSelectedFiles = function () {
+                return this.selectedFiles;
+            };
+            FooFileChooser.prototype.getFileArray = function () {
+                return this.fileArray;
+            };
+            FooFileChooser.prototype.clearSelection = function () {
+                this.selectedFiles = null;
+                this.element.removeClass("validate-error");
+                this.element.find(".validation-message").fadeOut(150);
+                this.fileArray = [];
+            };
+            FooFileChooser.prototype.onFileSelected = function (newFile) {
+                var _this = this;
+                this.selectedFiles = newFile;
+                this.element.find(".selected-file-text").fadeIn(150);
+                this.element.removeClass("validate-error");
+                this.element.find(".validation-message").fadeOut(150);
+                if (typeof this.fileArray === "undefined") {
+                    this.fileArray = [];
+                }
+                var maxFiles = 10;
+                var errors = "";
+                $.each(this.selectedFiles, function (index, value) {
+                    var fileError = _this.validateFile(value);
+                    errors += fileError;
+                    if (fileError === null || fileError === "") {
+                        if (_this.fileArray.length >= maxFiles) {
+                            alert("The maximum allowed files is " + maxFiles);
+                            return;
+                        }
+                        else {
+                            _this.fileArray.push(value);
+                            var sizeInMB = (value.size / (1024 * 1024)).toFixed(3);
+                            var rowID = 1;
+                            var data = [{ FileName: value.name, Size: sizeInMB }];
+                        }
+                    }
+                });
+                if (errors !== "") {
+                    var finalError = "The following problem(s) with file(s) have been found:\n";
+                    finalError += errors;
+                    alert(finalError);
+                }
+            };
+            FooFileChooser.prototype.supportsDragAndDrop = function () {
+                var div = document.createElement("div");
+                return ("draggable" in div) || ("ondragstart" in div && "ondrop" in div);
+            };
+            FooFileChooser.prototype.validateFile = function (v) {
+                if (!v)
+                    return undefined;
+                this.element.append("");
+                var errorText = "";
+                var finalError = "";
+                var maxFileSize = 26214400;
+                var maxFileSizeDisplay = maxFileSize.toFixed(3);
+                var allowedTypes = ["pdf", "doc", "docx", "tiff", "jpeg", "jpg"];
+                var fileExt = v.name.split(".")[v.name.split(".").length - 1].toLowerCase();
+                if (errorText !== "") {
+                    finalError += errorText;
+                }
+                return finalError;
+            };
+            FooFileChooser.prototype.fileValidation = function (file, fileExt, maxFileSize, allowedTypes) {
+                var errorText = "";
+                var isValidType = allowedTypes.indexOf(fileExt);
+                if (isValidType <= -1) {
+                    errorText += "Error: Invalid File Type : " + fileExt + "\n";
+                }
+                if (file.size > maxFileSize) {
+                    var sizeInMB = (file.size / (1024 * 1024)).toFixed(3);
+                    errorText += "Error: Invalid File Size : " + sizeInMB + "MB\n";
+                }
+                var result = false;
+                for (var i = 0, len = this.fileArray.length; i < len; i++) {
+                    if (this.fileArray[i].name === file.name) {
+                        result = true;
+                        break;
+                    }
+                }
+                if (result) {
+                    errorText += "Error: File Name Already Exists In List\n";
+                }
+                return errorText;
+            };
+            return FooFileChooser;
+        }());
+        Components.FooFileChooser = FooFileChooser;
+    })(Components || (Components = {}));
+
+    $(document).ready(function () {
+        var element = $("#foo-file-container");
+        new Components.FooFileChooser(element);
+    });
+
+</script>
